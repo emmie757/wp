@@ -1,0 +1,70 @@
+<?php
+$inputFile = 'D4.txt';
+$domain = 'https://pgsolucoesfinanceiras.com/id/';
+$maxUrlsPerFile = 50000;
+$outputDir = __DIR__; // Folder yang sama dengan script
+
+if (!file_exists($inputFile)) {
+    exit("❌ File '$inputFile' tidak ditemukan.\n");
+}
+
+$baris = file($inputFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+$totalBaris = count($baris);
+$totalSitemap = ceil($totalBaris / $maxUrlsPerFile);
+$index = new DOMDocument('1.0', 'UTF-8');
+$index->formatOutput = true;
+
+$sitemapIndex = $index->createElement('sitemapindex');
+$sitemapIndex->setAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+$index->appendChild($sitemapIndex);
+
+for ($i = 0; $i < $totalSitemap; $i++) {
+    $xml = new DOMDocument('1.0', 'UTF-8');
+    $xml->formatOutput = true;
+
+    $urlset = $xml->createElement('urlset');
+    $urlset->setAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+    $xml->appendChild($urlset);
+
+    $chunk = array_slice($baris, $i * $maxUrlsPerFile, $maxUrlsPerFile);
+
+    foreach ($chunk as $line) {
+        $slug = preg_replace('/[^a-z0-9\s]/', '', strtolower($line));
+        $slug = preg_replace('/\s+/', '-', trim($slug));
+        $fullUrl = rtrim($domain, '/') . '/' . $slug . '/';
+
+        $urlElement = $xml->createElement('url');
+
+        $loc = $xml->createElement('loc', htmlspecialchars($fullUrl));
+        $urlElement->appendChild($loc);
+
+        $lastmod = $xml->createElement('lastmod', date('Y-m-d'));
+        $urlElement->appendChild($lastmod);
+
+        $changefreq = $xml->createElement('changefreq', 'monthly');
+        $urlElement->appendChild($changefreq);
+
+        $priority = $xml->createElement('priority', '0.8');
+        $urlElement->appendChild($priority);
+
+        $urlset->appendChild($urlElement);
+    }
+
+    $sitemapFile = "sitemap" . ($i + 1) . ".xml";
+    $xml->save("$outputDir/$sitemapFile");
+    echo "✅ Sitemap $sitemapFile berhasil dibuat.\n";
+
+    // Tambahkan ke sitemap index
+    $sitemap = $index->createElement('sitemap');
+    $loc = $index->createElement('loc', rtrim($domain, '/') . '/' . $sitemapFile);
+    $lastmod = $index->createElement('lastmod', date('Y-m-d'));
+
+    $sitemap->appendChild($loc);
+    $sitemap->appendChild($lastmod);
+    $sitemapIndex->appendChild($sitemap);
+}
+
+// Simpan sitemap_index.xml
+$index->save("$outputDir/sitemaps/sitemap_index.xml");
+echo "📦 Semua selesai. Submit 'sitemap_index.xml' ke GSC.\n";
+?>
