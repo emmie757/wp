@@ -1,0 +1,30 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /id/
+
+# ===============================
+# 1️⃣ 
+# /id/?id_ID=slot → /id/slot/
+# ===============================
+RewriteCond %{QUERY_STRING} (^|&)id_ID=([^&]+)
+RewriteRule ^$ %2/ [R=301,L]
+
+# ===============================
+# 2️⃣ 
+# /id/slot/ → index.php?id_ID=slot
+# ===============================
+RewriteRule ^([^/]+)/$ index.php?id_ID=$1 [L,QSA]
+
+# ===============================
+# 3️⃣ 
+# ===============================
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule . - [L]
+
+# ===============================
+# 4️⃣ 
+# ===============================
+RewriteRule ^index\.php$ - [L]
+
+</IfModule>
